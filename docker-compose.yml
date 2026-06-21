@@ -19,6 +19,11 @@ services:
     volumes: [miniodata:/data]
     networks: [cambiofacilnet]
 
+  metabase:
+    image: metabase/metabase:latest
+    ports: ["3001:3000"]
+    networks: [cambiofacilnet]
+
 volumes:
   pgdata:
   miniodata:
