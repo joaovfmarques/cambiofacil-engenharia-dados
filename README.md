@@ -69,3 +69,85 @@ Clientes que precisam comprar moeda estrangeira para viagem frequentemente não 
 - Material das Aulas 01 a 09 da disciplina de Engenharia de Dados (CEUB).
 - Documentação oficial: dlt, dbt, Dagster, Soda Core e Metabase.
 - Documentação da API PTAX do Banco Central do Brasil.
+
+---
+
+## Arquitetura As-Built
+
+Abaixo está o diagrama do que foi **efetivamente implementado** na Parte 2, refletindo todos os ajustes feitos durante o desenvolvimento.
+
+```mermaid
+flowchart LR
+    subgraph Fontes
+        A1[API PTAX - Banco Central]
+        A2[CSV simulados: Clientes, Pedidos, Itens - Faker]
+    end
+
+    subgraph Ingestao["Ingestão (dlt, write_disposition=replace)"]
+        B1[dlt]
+    end
+
+    subgraph Bronze
+        C1[MinIO - bucket bronze]
+        C2["Postgres - schema bronze (espelho para o dbt)"]
+    end
+
+    subgraph Transformacao["Transformação (dbt)"]
+        D1[Silver - views limpas]
+        D2["Gold - star schema"]
+    end
+
+    subgraph GoldTabelas["Camada Gold"]
+        E1[fato_pedido]
+        E2[dim_cliente]
+        E3[dim_data]
+        E4[dim_moeda]
+        E5[dim_canal]
+    end
+
+    subgraph GovSeg["Governança e Segurança"]
+        F1["Roles, Grants, view mascarada de CPF"]
+        F2["COMMENT ON (catálogo)"]
+    end
+
+    subgraph QualMon["Qualidade e Monitoramento"]
+        G1[Soda Core - checks]
+        G2[monitoramento.alertas_qualidade]
+    end
+
+    subgraph Orquestracao["Orquestração (Dagster)"]
+        H1[Job pipeline_cambiofacil]
+    end
+
+    subgraph Consumo["Consumo (Metabase)"]
+        I1["Dashboard CambioFácil (8 gráficos)"]
+    end
+
+    A1 --> B1
+    A2 --> B1
+    B1 --> C1
+    B1 --> C2
+    C2 --> D1
+    D1 --> D2
+    D2 --> E1 & E2 & E3 & E4 & E5
+    E1 --> G1 --> G2
+    E1 --> F1 --> F2
+    H1 --> B1 & D1 & G1
+    E1 --> I1
+```
+
+### Relatório de Mudanças em Relação ao Plano da Parte 1
+
+Durante a implementação, algumas decisões técnicas foram ajustadas em relação ao planejamento original:
+
+- **Bronze duplicado em dois destinos (MinIO + Postgres):** o plano original previa a camada Bronze apenas no MinIO. Na prática, o `dbt` só consegue transformar dados que estejam em um banco relacional — por isso, os mesmos dados brutos passaram a ser carregados também em um schema `bronze` no PostgreSQL. O MinIO continua sendo o "arquivo bruto oficial" (cópia fiel para fins de auditoria/arquivamento); o Postgres serve como ponte técnica para a transformação.
+- **Nova dimensão: Canal de Venda:** não estava prevista na modelagem conceitual da Parte 1. Foi adicionada durante a implementação para enriquecer a análise de negócio, resultando em uma nova tabela dimensão (`dim_canal`) no star schema da camada Gold.
+- **Carga idempotente (`write_disposition="replace"`):** inicialmente as cargas do `dlt` estavam configuradas para acumular dados a cada execução. Isso foi corrigido para sempre substituir os dados anteriores, evitando duplicação e inconsistência entre execuções do pipeline.
+- **Volume de dados e variedade de moedas ampliados:** o volume inicial de dados simulados (50 clientes, 150 pedidos) foi ampliado (500 clientes, 3.000 pedidos), e a lista de moedas estrangeiras foi expandida de 3 para 8, com faixas de taxa de câmbio realistas por moeda — tornando o protótipo mais representativo de um cenário real.
+
+---
+
+## Como Rodar o Projeto (Reprodução)
+
+1. **Pré-requisitos:** WSL2 + Docker Desktop + Python 3 (dentro do WSL2) + VS Code com extensão WSL.
+2. **Clonar o repositório:**
