@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cambiofacil
+      POSTGRES_PASSWORD: cambiofacil123
+      POSTGRES_DB: cambiofacil_db
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [cambiofacilnet]
+
+  minio:
+    image: quay.io/minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+    networks: [cambiofacilnet]
+
+volumes:
+  pgdata:
+  miniodata:
+
+networks:
+  cambiofacilnet:
+    driver: bridge
