@@ -8,6 +8,14 @@
 - **Nome completo:** João Victor Ferreira Marques
 - **Matrícula:** 22303180
 
+
+
+### Relatório de Mudanças em Relação ao Plano da Parte 1
+
+**Mudança de escopo do projeto:** a primeira versão da Parte 1 propunha um cenário de e-commerce, com uma arquitetura significativamente mais ampla e complexa. Durante a tentativa de implementação prática, ficou evidente que esse escopo exigia recursos de hardware muito além do disponível na máquina utilizada (notebook com placa de vídeo integrada e RAM modesta) — o pipeline completo do e-commerce planejado original não chegou a rodar de forma estável. Diante disso, a Parte 1 foi refeita com a aprovação do professor, adotando um cenário mais simples e tecnicamente viável: a plataforma de operações de câmbio CambioFácil, descrita neste documento. A nova arquitetura mantém o mesmo rigor técnico (medalhão, star schema, governança, segurança, qualidade e monitoramento), mas com um volume e uma complexidade de dados compatíveis com o hardware disponível, validando exatamente o critério de viabilidade mencionado no enunciado original da disciplina ("planeje algo viável... lembre-se das limitações da sua máquina").
+
+Além dessa mudança de escopo, as seguintes decisões técnicas foram ajustadas durante a implementação da Parte 2 dentro do cenário do CambioFácil:
+
 ---
 
 ## 1. Descrição do Projeto
