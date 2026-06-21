@@ -5,9 +5,21 @@ import os
 
 fake = Faker('pt_BR')
 
-NUM_CLIENTES = 50
-NUM_PEDIDOS = 150
-MOEDAS = ['USD', 'EUR', 'GBP']
+NUM_CLIENTES = 500
+NUM_PEDIDOS = 3000
+MOEDAS = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'ARS']
+CANAIS_VENDA = ['App', 'Site', 'Agência Parceira']
+
+TAXAS_BASE = {
+    'USD': (4.5, 6.5),
+    'EUR': (5.0, 7.0),
+    'GBP': (6.0, 8.0),
+    'JPY': (0.03, 0.05),
+    'CHF': (5.5, 7.5),
+    'CAD': (3.5, 5.0),
+    'AUD': (3.0, 4.5),
+    'ARS': (0.005, 0.01)
+}
 
 # Gerar Clientes
 clientes = []
@@ -32,13 +44,15 @@ for i in range(1, NUM_PEDIDOS + 1):
     data_pedido = fake.date_between(start_date='-1y', end_date='today')
     status = random.choice(['pendente', 'concluido', 'cancelado'])
     endereco = fake.address()
+    canal_venda = random.choice(CANAIS_VENDA)
 
     num_itens = random.randint(1, 3)
     valor_total = 0
     for _ in range(num_itens):
         moeda = random.choice(MOEDAS)
+        taxa_min, taxa_max = TAXAS_BASE[moeda]
         quantidade = round(random.uniform(100, 5000), 2)
-        taxa = round(random.uniform(4.5, 6.5), 4)
+        taxa = round(random.uniform(taxa_min, taxa_max), 4)
         valor_item = round(quantidade * taxa, 2)
         valor_total += valor_item
 
@@ -57,7 +71,8 @@ for i in range(1, NUM_PEDIDOS + 1):
         'data_pedido': data_pedido,
         'valor_total_brl': round(valor_total, 2),
         'status': status,
-        'endereco_retirada': endereco
+        'endereco_retirada': endereco,
+        'canal_venda': canal_venda
     })
 
 df_pedidos = pd.DataFrame(pedidos)

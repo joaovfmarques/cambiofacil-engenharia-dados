@@ -4,6 +4,7 @@ select
     p.id_cliente,
     p.data_pedido as data,
     ip.moeda_estrangeira as moeda,
+    p.canal_venda as canal,
     ip.quantidade_solicitada,
     ip.taxa_cambio_aplicada,
     p.valor_total_brl,

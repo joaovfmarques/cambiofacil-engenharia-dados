@@ -4,5 +4,5 @@ select
     cpf,
     email,
     telefone,
-    data_cadastro
+    data_cadastro::date as data_cadastro
 from {{ source('bronze', 'clientes') }}
