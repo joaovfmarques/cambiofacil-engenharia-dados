@@ -1,6 +1,6 @@
 # CambioFácil — Plataforma de Operações de Câmbio para Viajantes
 
-> Protótipo de Ciclo de Vida de Engenharia de Dados — Parte 1 (Planejamento e Desenho Arquitetural)
+> Protótipo de Ciclo de Vida de Engenharia de Dados — Parte 1 e Parte 2
 > Disciplina: Engenharia de Dados — CEUB
 
 ## Integrante
@@ -37,27 +37,33 @@ Clientes que precisam comprar moeda estrangeira para viagem frequentemente não 
 
 ## 2. Estrutura do Repositório
 
-| Arquivo | Conteúdo |
+| Caminho | Conteúdo |
 |---|---|
 | `docs/dados.md` | Definição e classificação das fontes de dados |
 | `docs/dominios-servicos.md` | Domínios de negócio e serviços envolvidos |
 | `docs/arquitetura.md` | Arquitetura, fluxo de dados e justificativas |
 | `docs/tecnologias.md` | Tecnologias escolhidas e justificativas por etapa |
 | `docs/modelagem-dados.md` | Modelagem conceitual/lógica dos dados (diagrama ER) |
+| `docker-compose.yml` | Infraestrutura local (Postgres, MinIO, Metabase) |
+| `scripts/` | Scripts Python de geração de dados e ingestão (dlt) |
+| `cambiofacil_dbt/` | Projeto dbt (transformações Silver e Gold) |
+| `sql/` | Scripts SQL de governança e segurança |
+| `soda/` | Configuração e checks de qualidade (Soda Core) |
+| `orquestracao/` | Definições do pipeline no Dagster |
 
 ---
 
-## 3. Considerações Finais
+## 3. Considerações Finais (Parte 1)
 
 ### Riscos e Limitações
 
 - A API PTAX do Banco Central pode alterar seu formato de resposta sem aviso prévio, exigindo ajustes no pipeline de ingestão.
 - Os dados de clientes e pedidos são simulados (via biblioteca Faker), o que não captura toda a complexidade e os casos extremos de um sistema de produção real.
-- O baixo volume de dados utilizado no protótipo pode mascarar problemas de performance que só se manifestariam em um ambiente de produção com maior escala.
+- O baixo volume de dados utilizado inicialmente no protótipo poderia mascarar problemas de performance que só se manifestariam em um ambiente de produção com maior escala (volume posteriormente ampliado na Parte 2).
 
-### Próximos Passos (Parte 2)
+### Próximos Passos (executados na Parte 2)
 
-- Subir a infraestrutura local via Docker Compose (PostgreSQL e MinIO).
+- Subir a infraestrutura local via Docker Compose (PostgreSQL, MinIO e Metabase).
 - Implementar os scripts de ingestão com `dlt`.
 - Implementar os modelos de transformação (Bronze → Silver → Gold) com `dbt`.
 - Orquestrar a execução do pipeline com `Dagster`.
@@ -72,9 +78,9 @@ Clientes que precisam comprar moeda estrangeira para viagem frequentemente não 
 
 ---
 
-## Arquitetura As-Built
+## 4. Arquitetura As-Built (Parte 2)
 
-Abaixo está o diagrama do que foi **efetivamente implementado** na Parte 2, refletindo todos os ajustes feitos durante o desenvolvimento.
+Abaixo está o diagrama do que foi **efetivamente implementado**, refletindo todos os ajustes feitos durante o desenvolvimento prático.
 
 ```mermaid
 flowchart LR
@@ -147,7 +153,48 @@ Durante a implementação, algumas decisões técnicas foram ajustadas em relaç
 
 ---
 
-## Como Rodar o Projeto (Reprodução)
+## 5. Como Rodar o Projeto (Reprodução)
 
 1. **Pré-requisitos:** WSL2 + Docker Desktop + Python 3 (dentro do WSL2) + VS Code com extensão WSL.
 2. **Clonar o repositório:**
+   ```
+   git clone https://github.com/joaovfmarques/cambiofacil-engenharia-dados.git
+   cd cambiofacil-engenharia-dados
+   ```
+3. **Subir a infraestrutura (Postgres, MinIO, Metabase):**
+   ```
+   docker compose up -d
+   ```
+4. **Criar o ambiente Python e instalar dependências:**
+   ```
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+5. **Configurar as credenciais do dlt** (recriar `.dlt/secrets.toml`, não versionado — ver `docs/tecnologias.md` para os valores usados).
+6. **Criar o bucket `bronze` no MinIO** (via `http://localhost:9001`, login `minioadmin`/`minioadmin123`).
+7. **Gerar os dados simulados e rodar a ingestão:**
+   ```
+   python3 scripts/gerar_dados_simulados.py
+   python3 scripts/ingestao_dados_simulados.py
+   python3 scripts/ingestao_cotacao_ptax.py
+   python3 scripts/carregar_bronze_postgres.py
+   ```
+8. **Rodar as transformações:**
+   ```
+   cd cambiofacil_dbt && dbt run && cd ..
+   ```
+9. **Aplicar governança e segurança:**
+   ```
+   psql -h localhost -U cambiofacil -d cambiofacil_db -f sql/governanca_seguranca.sql
+   ```
+10. **Rodar a checagem de qualidade:**
+    ```
+    python3 scripts/checar_qualidade.py
+    ```
+11. **Orquestrar tudo via Dagster** (alternativa aos passos 7-10 manuais):
+    ```
+    dagster dev -f orquestracao/definitions.py
+    ```
+    Acesse `http://127.0.0.1:3000` → Jobs → `pipeline_cambiofacil` → Launch Run.
+12. **Visualizar o dashboard:** acesse `http://localhost:3001` (Metabase) e abra o **Dashboard CambioFácil**.
